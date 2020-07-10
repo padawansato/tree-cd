@@ -1,6 +1,18 @@
-use std::env;
+use std::path::PathBuf;
+use structopt::StructOpt;
+
+#[derive(StructOpt, Debug)]
+struct Opt {
+    #[structopt(parse(from_os_str))]
+    path: PathBuf,
+}
+
 fn main() {
-    let path = env::args().nth(1).expect("1 argument PATH required");
-    // println!("Hello, world!");
-    println!("path = {:?}", path);
+    let opt = Opt::from_args();
+    println!("opt = {:?}", opt);
+    for entry in opt.path.read_dir().expect("read_dir call failed") {
+        if let Ok(entry) = entry {
+            println!("{:?}", entry.path());
+        }
+    }
 }
