@@ -3,7 +3,7 @@ use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 struct Opt {
-    #[structopt(parse(from_os_str))]
+    #[structopt(default_value = ".",parse(from_os_str))]
     path: PathBuf,
 }
 
