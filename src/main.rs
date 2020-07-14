@@ -1,5 +1,7 @@
 use std::error::Error;
 use std::fs;
+use std::io;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
@@ -17,46 +19,63 @@ static VERT: &str = "│   ";
 
 #[derive(StructOpt, Debug)]
 struct Opt {
-    #[structopt(default_value = ".", parse(from_os_str))]
+    #[structopt(name = "DIRECTORY", default_value = ".", parse(from_os_str))]
     path: PathBuf,
 
     #[structopt(short = "L", default_value = "2")]
     level: usize,
-}
-fn run(dir: &Path, level: usize) {
-    let default_depth = 0;
-    let default_prefix = String::from("");
-    visit_dirs(&dir, default_depth, level, default_prefix);
+
+    #[structopt(short = "a")]
+    all: bool,
 }
 
-fn visit_dirs(dir: &Path, depth: usize, level: usize, prefix: String) {
+fn run(dir: &Path, level: usize, all: bool) -> Result<(), Box<Error>> {
+    let default_depth = 0;
+    let default_prefix = String::from("");
+    visit_dirs(&dir, default_depth, level, default_prefix, all);
+    Ok(())
+}
+
+fn visit_dirs(dir: &Path, depth: usize, level: usize, prefix: String, all: bool) {
     // if depth == level {
-    //     return Ok(());
+    //     Ok();
     // }
-    let mut paths: Vec<_> = fs::read_dir(&dir)
-        .unwrap()
-        .map(|entry| entry.unwrap())
-        .collect();
-    let index = paths.len();
-    paths.sort_by(|a, b| a.path().file_name().cmp(&b.path().file_name()));
-    // println!("paths = {:?}", paths);
-    // println!("index = {:?}", index);
+
     if dir.is_dir() {
-        for (index, entry) in paths.iter().enumerate() {
+        let entry_set = fs::read_dir(&dir).unwrap(); // contains DirEntry
+        let mut entries = entry_set
+            .filter_map(|v| match v.ok() {
+                Some(v) => {
+                    if all {
+                        return Some(v);
+                    } else {
+                        if v.file_name().to_str()?.starts_with(".") {
+                            return None;
+                        } else {
+                            Some(v)
+                        }
+                    }
+                }
+                None => None,
+            })
+            .collect::<Vec<_>>();
+        entries.sort_by(|a, b| a.path().file_name().cmp(&b.path().file_name()));
+        for (index, entry) in entries.iter().enumerate() {
             let path = entry.path();
-            if index == paths.len() - 1 {
-                println!("{}{}{}", prefix, &LAST_FILE, &path.display());
+            let filename = path.file_name().unwrap().to_str().unwrap();
+            if index == entries.len() - 1 {
+                println!("{}{}{:?}", prefix, &LAST_FILE, filename);
                 if path.is_dir() {
                     let depth = depth + 1;
                     let prefix = prefix.clone() + &BLANK;
-                    visit_dirs(&path, depth, level, prefix);
+                    visit_dirs(&path, depth, level, prefix, all);
                 }
             } else {
-                println!("{}{}{}", prefix, &CROSS, &path.display());
+                println!("{}{}{:?}", prefix, &CROSS, filename);
                 if path.is_dir() {
                     let depth = depth + 1;
                     let prefix_new = prefix.clone() + &VERT;
-                    visit_dirs(&path, depth, level, prefix_new);
+                    visit_dirs(&path, depth, level, prefix_new, all);
                 }
             }
         }
@@ -66,5 +85,5 @@ fn visit_dirs(dir: &Path, depth: usize, level: usize, prefix: String) {
 fn main() {
     let opt = Opt::from_args();
     // println!("opt = {:?}", opt);
-    run(&opt.path, opt.level)
+    run(&opt.path, opt.level, opt.all);
 }
