@@ -22,7 +22,7 @@ struct Opt {
     #[structopt(name = "DIRECTORY", default_value = ".", parse(from_os_str))]
     path: PathBuf,
 
-    #[structopt(short = "L", default_value = "2")]
+    #[structopt(short = "L", default_value = "3")]
     level: usize,
 
     #[structopt(short = "a")]
@@ -37,9 +37,9 @@ fn run(dir: &Path, level: usize, all: bool) -> Result<(), Box<Error>> {
 }
 
 fn visit_dirs(dir: &Path, depth: usize, level: usize, prefix: String, all: bool) {
-    // if depth == level {
-    //     Ok();
-    // }
+    if depth == level {
+        return;
+    }
 
     if dir.is_dir() {
         let entry_set = fs::read_dir(&dir).unwrap(); // contains DirEntry
