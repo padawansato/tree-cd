@@ -2,4 +2,4 @@
 !*/
 !*.*
 *.code-workspace
-/target/
+target/
