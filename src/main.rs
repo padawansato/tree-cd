@@ -1,17 +1,14 @@
 use std::error::Error;
 use std::fs;
 use std::io;
+use std::io::{stdin, stdout, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::*;
 
-// mod dirsign {
-//     pub const HORZ: char = '─';
-//     pub const CROSS: char = '├';
-//     pub const VERT: char = '│';
-//     pub const LAST_FILE: char = '└';
-//     pub const BLANK: char = '\u{00A0}';
-// }
 static LAST_FILE: &str = "└───";
 static CROSS: &str = "├───";
 static BLANK: &str = "\u{00A0}\u{00A0}\u{00A0}\u{00A0}";
@@ -81,9 +78,42 @@ fn visit_dirs(dir: &Path, depth: usize, level: usize, prefix: String, all: bool)
         }
     }
 }
+const MESSAGE: &str = "Tree";
 
-fn main() {
+fn main() -> Result<(), io::Error> {
+    let stdin = stdin();
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    write!(stdout, "{}{}", clear::All, cursor::Hide).unwrap();
+    write!(stdout, "{}Please, Push T!!", cursor::Goto(1, 1)).unwrap();
+    stdout.flush().unwrap();
+
     let opt = Opt::from_args();
-    // println!("opt = {:?}", opt);
-    run(&opt.path, opt.level, opt.all);
+
+    for c in stdin.keys() {
+        match c {
+            Ok(event::Key::Char('T')) => {
+                if let Ok((width, height)) = terminal_size() {
+                    let x = 1 as u16;
+                    let y = 1;
+                    write!(
+                        stdout,
+                        "{}{}{}{}{}{}",
+                        clear::All,
+                        cursor::Goto(x, y),
+                        color::Fg(color::Blue),
+                        style::Bold,
+                        MESSAGE,
+                        style::Reset,
+                    )
+                    .unwrap();
+                    stdout.flush().unwrap();
+                }
+            }
+            Ok(event::Key::Ctrl('c')) => break,
+            _ => {}
+        }
+    }
+
+    write!(stdout, "{}", termion::cursor::Show).unwrap();
+    Ok(())
 }
