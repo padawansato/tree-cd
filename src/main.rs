@@ -91,21 +91,21 @@ fn main() -> Result<(), io::Error> {
 
     for c in stdin.keys() {
         match c {
-            Ok(event::Key::Char('T')) => {
+            Ok(_) => {
                 if let Ok((width, height)) = terminal_size() {
                     let x = 1 as u16;
                     let y = 1;
                     write!(
                         stdout,
-                        "{}{}{}{}{}{}",
+                        "{}{}{}{}{}",
                         clear::All,
                         cursor::Goto(x, y),
                         color::Fg(color::Blue),
                         style::Bold,
-                        MESSAGE,
                         style::Reset,
                     )
                     .unwrap();
+                    run(&opt.path, opt.level, opt.all);
                     stdout.flush().unwrap();
                 }
             }
